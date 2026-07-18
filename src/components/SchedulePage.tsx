@@ -2,6 +2,107 @@ import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Plus, Trash2, GripVertical, Calendar, Save, CheckCircle2, RefreshCw } from "lucide-react";
 import { getSchedules, saveSchedules, formatDate } from "../lib/storage";
 import { DaySchedule, ScheduleLesson } from "../types";
+import { getCachedSetting } from "../lib/supabase";
+
+interface SubjectInputProps {
+  id: string;
+  initialValue: string;
+  onSave: (val: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+}
+
+function SubjectInput({ id, initialValue, onSave, onKeyDown }: SubjectInputProps) {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  const handleBlur = () => {
+    if (value !== initialValue) {
+      onSave(value);
+    }
+  };
+
+  return (
+    <input
+      id={id}
+      type="text"
+      value={value}
+      placeholder="과목명"
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key.startsWith("Arrow")) {
+          if (value !== initialValue) {
+            onSave(value);
+          }
+        }
+        onKeyDown(e);
+      }}
+      className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-extrabold text-gray-800 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all text-center placeholder-gray-300"
+    />
+  );
+}
+
+// Optimized sub-component to prevent stutter/re-render while typing lesson content
+interface ContentTextAreaProps {
+  id: string;
+  initialValue: string;
+  onSave: (val: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  textareaRefCallback: (el: HTMLTextAreaElement | null) => void;
+}
+
+function ContentTextArea({ id, initialValue, onSave, onKeyDown, textareaRefCallback }: ContentTextAreaProps) {
+  const [value, setValue] = useState(initialValue);
+  const localRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  // Local height adjustment during active typing (highly responsive)
+  useEffect(() => {
+    const el = localRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [value]);
+
+  const handleBlur = () => {
+    if (value !== initialValue) {
+      onSave(value);
+    }
+  };
+
+  return (
+    <textarea
+      id={id}
+      ref={(el) => {
+        localRef.current = el;
+        textareaRefCallback(el);
+      }}
+      value={value}
+      placeholder="수업 내용을 자유롭게 입력하세요 (Enter를 누르면 다음 교시로 이동)"
+      rows={1}
+      onChange={(e) => {
+        setValue(e.target.value);
+      }}
+      onBlur={handleBlur}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key.startsWith("Arrow")) {
+          if (value !== initialValue) {
+            onSave(value);
+          }
+        }
+        onKeyDown(e);
+      }}
+      className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-700 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all resize-none placeholder-gray-300 leading-relaxed min-h-[38px]"
+    />
+  );
+}
 
 interface SchedulePageProps {
   onBack: () => void;
@@ -12,16 +113,28 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
   const [savedToast, setSavedToast] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const textareasRef = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Dynamically synced teacher name and class info
+  const [classInfo, setClassInfo] = useState(() => getCachedSetting("header_class_info", "5학년 2반"));
+  const [teacherName, setTeacherName] = useState(() => getCachedSetting("header_teacher_name", "김다온"));
 
   // Load schedules on mount with real-time reactivity
   useEffect(() => {
     const handleStorageChange = () => {
       const data = getSchedules();
       setSchedules(data);
+      setClassInfo(getCachedSetting("header_class_info", "5학년 2반"));
+      setTeacherName(getCachedSetting("header_teacher_name", "김다온"));
     };
     handleStorageChange();
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
   }, []);
 
   // Sync auto-resize on initial render and schedule updates
@@ -40,10 +153,14 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
     setSchedules(updated);
     saveSchedules(updated);
     
-    // Show quick feedback toast
+    // Show quick feedback toast with proper timer cleanup
     setSavedToast(true);
-    const timer = setTimeout(() => setSavedToast(false), 1500);
-    return () => clearTimeout(timer);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
+      setSavedToast(false);
+    }, 1500);
   };
 
   // 1. Subject and Content Editing
@@ -293,8 +410,8 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
               <Calendar className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5 text-[#2563EB] shrink-0" />
               <span className="hidden sm:inline">학기 전체 </span>시간표<span className="hidden sm:inline"> 관리</span>
             </h1>
-            <p className="hidden sm:block text-xs text-gray-400 mt-0.5 font-medium">
-              학기 종료일까지의 시간표를 엑셀처럼 빠르고 직관적으로 관리하세요.
+            <p className="hidden sm:block text-xs text-gray-500 mt-0.5 font-medium">
+              <span className="text-[#2563EB] font-bold">{classInfo}</span> <span className="font-bold text-gray-700">{teacherName} 선생님</span>의 학급 시간표를 엑셀처럼 빠르고 직관적으로 관리하세요.
             </p>
           </div>
         </div>
@@ -422,14 +539,11 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
 
                           {/* Subject Input Field */}
                           <div className="w-32">
-                            <input
+                            <SubjectInput
                               id={`sub-${day.date}-${lessonIdx}`}
-                              type="text"
-                              value={lesson.subject}
-                              placeholder="과목명"
-                              onChange={(e) => handleFieldChange(day.date, lesson.id, "subject", e.target.value)}
+                              initialValue={lesson.subject}
+                              onSave={(val) => handleFieldChange(day.date, lesson.id, "subject", val)}
                               onKeyDown={(e) => handleKeyDown(e, dateIdx, lessonIdx, "subject")}
-                              className="w-full bg-white border border-gray-200 rounded-xl px-2.5 py-1.5 text-xs font-extrabold text-gray-800 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all text-center placeholder-gray-300"
                             />
                           </div>
                         </div>
@@ -446,22 +560,14 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
 
                       {/* Bottom Row: Content textarea underneath */}
                       <div className="w-full">
-                        <textarea
+                        <ContentTextArea
                           id={`con-${day.date}-${lessonIdx}`}
-                          ref={(el) => {
+                          initialValue={lesson.content}
+                          onSave={(val) => handleFieldChange(day.date, lesson.id, "content", val)}
+                          onKeyDown={(e) => handleKeyDown(e, dateIdx, lessonIdx, "content")}
+                          textareaRefCallback={(el) => {
                             textareasRef.current[`${day.date}-${lesson.id}`] = el;
                           }}
-                          value={lesson.content}
-                          placeholder="수업 내용을 자유롭게 입력하세요 (Enter를 누르면 다음 교시로 이동)"
-                          rows={1}
-                          onChange={(e) => {
-                            // Local height adjustment
-                            e.target.style.height = "auto";
-                            e.target.style.height = `${e.target.scrollHeight}px`;
-                            handleFieldChange(day.date, lesson.id, "content", e.target.value);
-                          }}
-                          onKeyDown={(e) => handleKeyDown(e, dateIdx, lessonIdx, "content")}
-                          className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-gray-700 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all resize-none placeholder-gray-300 leading-relaxed min-h-[38px]"
                         />
                       </div>
                     </div>

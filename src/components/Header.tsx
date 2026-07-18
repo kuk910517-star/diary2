@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Calendar, ChevronDown, Award, Database, LogOut } from "lucide-react";
-import { useSupabaseInitStatus } from "../lib/supabase";
+import { useSupabaseInitStatus, getCachedSetting, saveCachedSetting } from "../lib/supabase";
 
 interface HeaderProps {
   onManageSchedule?: () => void;
@@ -11,23 +11,35 @@ interface HeaderProps {
 export default function Header({ onManageSchedule, onGoHome, onLogout }: HeaderProps) {
   const { initialized, isConnected } = useSupabaseInitStatus();
 
-  // Editable teacher name and class info with local persistence
+  // Editable teacher name and class info with local persistence and real-time syncing
   const [teacherName, setTeacherName] = React.useState(() => {
-    return localStorage.getItem("header_teacher_name") || "김다온";
+    return getCachedSetting("header_teacher_name", localStorage.getItem("header_teacher_name") || "김다온");
   });
   const [classInfo, setClassInfo] = React.useState(() => {
-    return localStorage.getItem("header_class_info") || "5학년 2반";
+    return getCachedSetting("header_class_info", localStorage.getItem("header_class_info") || "5학년 2반");
   });
+
+  // Listen to storage events to keep teacherName and classInfo updated instantly across components
+  useEffect(() => {
+    const handleStorage = () => {
+      setTeacherName(getCachedSetting("header_teacher_name", localStorage.getItem("header_teacher_name") || "김다온"));
+      setClassInfo(getCachedSetting("header_class_info", localStorage.getItem("header_class_info") || "5학년 2반"));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const handleTeacherNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTeacherName(val);
+    saveCachedSetting("header_teacher_name", val);
     localStorage.setItem("header_teacher_name", val);
   };
 
   const handleClassInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setClassInfo(val);
+    saveCachedSetting("header_class_info", val);
     localStorage.setItem("header_class_info", val);
   };
 

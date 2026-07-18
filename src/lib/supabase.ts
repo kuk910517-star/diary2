@@ -435,7 +435,9 @@ export async function initSupabaseData() {
   noticesCache = savedLocalNotice !== null ? savedLocalNotice : "<div>1.&nbsp;내일 수학 준비물 지참</div><div>2.&nbsp;교실 사물함 정돈하기</div>";
   settingsCache = {
     "teacher_notes_board_active_tab": "notice",
-    "teacher_notes_timer_initial_seconds": "2400"
+    "teacher_notes_timer_initial_seconds": "2400",
+    "header_teacher_name": localStorage.getItem("header_teacher_name") || "김다온",
+    "header_class_info": localStorage.getItem("header_class_info") || "5학년 2반"
   };
 
   if (!supabase) {

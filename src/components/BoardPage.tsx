@@ -66,6 +66,19 @@ export default function BoardPage({ onBack }: BoardPageProps) {
     return (getCachedSetting("teacher_notes_board_active_tab", "notice") as "notice" | "chalk") || "notice";
   });
 
+  // Dynamically synced teacher name and class info
+  const [classInfo, setClassInfo] = useState(() => getCachedSetting("header_class_info", "5학년 2반"));
+  const [teacherName, setTeacherName] = useState(() => getCachedSetting("header_teacher_name", "김다온"));
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setClassInfo(getCachedSetting("header_class_info", "5학년 2반"));
+      setTeacherName(getCachedSetting("header_teacher_name", "김다온"));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
   // HTML content states
   const [chalkHtml, setChalkHtml] = useState("<div></div>");
   const [noticeHtml, setNoticeHtml] = useState("<div></div>");
@@ -416,8 +429,12 @@ export default function BoardPage({ onBack }: BoardPageProps) {
             <span className="text-[10px] font-extrabold text-[#2563EB] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md animate-pulse">
               프레젠테이션 모드
             </span>
-            <h2 className="font-sans font-extrabold text-sm text-gray-900">
-              {activeTab === "notice" ? "알림장 전체화면" : "칠판 전체화면"}
+            <h2 className="font-sans font-extrabold text-sm text-gray-900 flex items-center gap-2">
+              <span className="text-[#2563EB] font-bold">{classInfo}</span>
+              <span className="text-gray-300 font-normal">|</span>
+              <span className="text-gray-700 font-semibold">{teacherName} 선생님</span>
+              <span className="text-gray-300 font-normal">|</span>
+              <span className="text-gray-500 font-medium">{activeTab === "notice" ? "알림장" : "칠판"}</span>
             </h2>
             <span className="text-xs text-gray-400 font-medium hidden sm:inline">기준일: {formattedTodayDot}</span>
           </div>
@@ -497,7 +514,10 @@ export default function BoardPage({ onBack }: BoardPageProps) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#2563EB] bg-blue-50 px-2 py-0.5 rounded-md">
-                  담임업무
+                  {classInfo}
+                </span>
+                <span className="text-xs font-bold text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md">
+                  {teacherName} 선생님
                 </span>
                 <span className="text-[10px] text-gray-400 font-medium">기준일: {formattedTodayDot}</span>
               </div>
