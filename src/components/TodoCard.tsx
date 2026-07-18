@@ -44,10 +44,15 @@ function loadTodos(): TodoItem[] {
   // "체크한 할 일은 당일에는 완료 상태로 표시하고, 다음날이 되면 자동으로 목록에서 제거됩니다."
   // "오늘 할 일에서 체크되지 않은 내용은 다음 날에도 연동(이월)되어 계속 유지됩니다."
   // "출결은 날짜가 지나도 저장해두지만 나머지 내용은 날짜가 지나고 나면 삭제해줘."
+  // "월간달력에 적은 할 일도 끝나지 않으면 다음날 오늘 할일에 계속 보이도록 해줘"
   stored = stored.filter((todo) => {
-    // If a todo belongs to a past date, delete it (non-attendance content is deleted when date passes)
+    // If a todo belongs to a past date, delete it if it is completed.
+    // If it is NOT completed, keep it so it continues to show in today's list.
     if (todo.date && todo.date < todayStr) {
-      return false;
+      if (todo.isCompleted) {
+        return false;
+      }
+      return true;
     }
     // "달력 날짜에 입력되어 있는 할 일은 오늘 할 일에도 자동으로 연동시켜줘."
     // We allow future calendar todos to be visible and linked in Today's Todos too.

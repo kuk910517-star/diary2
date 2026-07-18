@@ -115,17 +115,13 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
   const textareasRef = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Dynamically synced teacher name and class info
-  const [classInfo, setClassInfo] = useState(() => getCachedSetting("header_class_info", "5학년 2반"));
-  const [teacherName, setTeacherName] = useState(() => getCachedSetting("header_teacher_name", "김다온"));
+
 
   // Load schedules on mount with real-time reactivity
   useEffect(() => {
     const handleStorageChange = () => {
       const data = getSchedules();
       setSchedules(data);
-      setClassInfo(getCachedSetting("header_class_info", "5학년 2반"));
-      setTeacherName(getCachedSetting("header_teacher_name", "김다온"));
     };
     handleStorageChange();
     window.addEventListener("storage", handleStorageChange);
@@ -410,8 +406,8 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
               <Calendar className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5 text-[#2563EB] shrink-0" />
               <span className="hidden sm:inline">학기 전체 </span>시간표<span className="hidden sm:inline"> 관리</span>
             </h1>
-            <p className="hidden sm:block text-xs text-gray-500 mt-0.5 font-medium">
-              <span className="text-[#2563EB] font-bold">{classInfo}</span> <span className="font-bold text-gray-700">{teacherName} 선생님</span>의 학급 시간표를 엑셀처럼 빠르고 직관적으로 관리하세요.
+            <p className="hidden sm:block text-xs text-gray-400 mt-0.5 font-medium">
+              학기 종료일까지의 시간표를 엑셀처럼 빠르고 직관적으로 관리하세요.
             </p>
           </div>
         </div>

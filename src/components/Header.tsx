@@ -11,38 +11,6 @@ interface HeaderProps {
 export default function Header({ onManageSchedule, onGoHome, onLogout }: HeaderProps) {
   const { initialized, isConnected } = useSupabaseInitStatus();
 
-  // Editable teacher name and class info with local persistence and real-time syncing
-  const [teacherName, setTeacherName] = React.useState(() => {
-    return getCachedSetting("header_teacher_name", localStorage.getItem("header_teacher_name") || "김다온");
-  });
-  const [classInfo, setClassInfo] = React.useState(() => {
-    return getCachedSetting("header_class_info", localStorage.getItem("header_class_info") || "5학년 2반");
-  });
-
-  // Listen to storage events to keep teacherName and classInfo updated instantly across components
-  useEffect(() => {
-    const handleStorage = () => {
-      setTeacherName(getCachedSetting("header_teacher_name", localStorage.getItem("header_teacher_name") || "김다온"));
-      setClassInfo(getCachedSetting("header_class_info", localStorage.getItem("header_class_info") || "5학년 2반"));
-    };
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
-  }, []);
-
-  const handleTeacherNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setTeacherName(val);
-    saveCachedSetting("header_teacher_name", val);
-    localStorage.setItem("header_teacher_name", val);
-  };
-
-  const handleClassInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setClassInfo(val);
-    saveCachedSetting("header_class_info", val);
-    localStorage.setItem("header_class_info", val);
-  };
-
   // Use current date or a styled reference date
   const today = new Date();
   const options: Intl.DateTimeFormatOptions = {
@@ -117,7 +85,7 @@ export default function Header({ onManageSchedule, onGoHome, onLogout }: HeaderP
         </div>
       </div>
 
-      {/* Right side: Profile & Actions */}
+      {/* Right side: Actions */}
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Full Schedule Button */}
         {onManageSchedule && (
@@ -140,38 +108,6 @@ export default function Header({ onManageSchedule, onGoHome, onLogout }: HeaderP
             <span className="hidden sm:inline">로그아웃</span>
           </button>
         )}
-
-        {/* Divider */}
-        <div className="h-6 w-[1px] bg-gray-200"></div>
-
-        {/* Teacher Profile Info */}
-        <div className="flex items-center gap-2 pl-1 select-none">
-          <div className="w-8 h-8 sm:w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-[#2563EB] font-extrabold text-xs sm:text-sm shrink-0">
-            {teacherName.charAt(0) || "김"}
-          </div>
-            <div className="flex flex-col text-left gap-0.5">
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  value={teacherName}
-                  onChange={handleTeacherNameChange}
-                  className="w-18 sm:w-22 bg-transparent hover:bg-gray-100/55 focus:bg-white border border-transparent focus:border-gray-200 focus:ring-1 focus:ring-blue-100 rounded px-1 py-0.5 text-xs font-bold text-gray-800 focus:outline-hidden transition-all"
-                  placeholder="교사명"
-                  title="선생님 이름 수정"
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="text"
-                  value={classInfo}
-                  onChange={handleClassInfoChange}
-                  className="w-20 sm:w-26 bg-transparent hover:bg-gray-100/55 focus:bg-white border border-transparent focus:border-gray-200 focus:ring-1 focus:ring-blue-100 rounded px-1 py-0.5 text-[10px] font-semibold text-gray-500 focus:outline-hidden transition-all"
-                  placeholder="학년 반"
-                  title="학반 수정"
-                />
-              </div>
-            </div>
-        </div>
       </div>
     </header>
   );
