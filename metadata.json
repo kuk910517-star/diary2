@@ -1,0 +1,6 @@
+{
+  "name": "담임노트",
+  "description": "초등학교 담임교사를 위한 깔끔하고 정돈된 Notion + Google Calendar 스타일의 하루 업무 대시보드 메인 화면",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
