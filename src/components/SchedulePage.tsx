@@ -542,23 +542,23 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
             >
               {/* Card Header: Date */}
               <div className="flex items-center justify-between pb-4 mb-5 border-b border-gray-100 flex-wrap gap-3">
-                <div className="flex items-center gap-3">
-                  <div className={`p-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-colors ${
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <div className={`p-1.5 rounded-xl font-bold flex items-center gap-1 sm:gap-1.5 transition-colors ${
                     isTodayStr ? "bg-blue-100/75 text-[#2563EB]" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                   }`} title="날짜를 클릭하여 변경할 수 있습니다">
-                    <Calendar className="w-4 h-4 shrink-0 text-gray-400" />
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 h-4 shrink-0 text-gray-400" />
                     <input
                       type="date"
                       value={day.date}
                       onChange={(e) => handleUpdateDate(day.date, e.target.value)}
-                      className="bg-transparent border-none p-0 text-xs sm:text-sm font-extrabold focus:ring-0 focus:outline-hidden cursor-pointer w-28 text-center text-inherit"
+                      className="bg-transparent border-none p-0 text-xs sm:text-sm font-extrabold focus:ring-0 focus:outline-hidden cursor-pointer w-24 sm:w-28 text-center text-inherit min-h-[1.5rem]"
                     />
-                    <span className="text-xs font-semibold text-gray-400 pr-1 shrink-0">
+                    <span className="text-[11px] sm:text-xs font-semibold text-gray-400 pr-1 shrink-0">
                       ({getDayKorean(day.date)})
                     </span>
                   </div>
                   {isTodayStr && (
-                    <span className="text-[11px] font-bold bg-[#2563EB] text-white px-2.5 py-0.5 rounded-full animate-pulse">
+                    <span className="text-[10px] sm:text-[11px] font-bold bg-[#2563EB] text-white px-2 py-0.5 rounded-full animate-pulse">
                       오늘
                     </span>
                   )}
@@ -675,24 +675,24 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => handleAddLesson(day.date)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563EB] bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50 px-4 py-2.5 rounded-xl transition-all cursor-pointer shrink-0"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#2563EB] bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50 px-4 py-2.5 rounded-xl transition-all cursor-pointer shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   교시 추가
                 </button>
 
                 {dateIdx === schedules.length - 1 && (
-                  <div className="flex items-center gap-2 border-l border-gray-100 pl-3">
+                  <div className="w-full sm:w-auto flex flex-wrap sm:flex-nowrap items-center gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0 sm:border-l border-gray-100 sm:pl-3">
                     <input
                       type="date"
                       value={newDate}
                       onChange={(e) => setNewDate(e.target.value)}
-                      className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                      className="flex-1 sm:flex-none min-w-[120px] bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
                     />
                     <button
                       onClick={() => handleAddDate(newDate)}
                       disabled={!newDate}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer select-none whitespace-nowrap ${
+                      className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer select-none whitespace-nowrap ${
                         newDate
                           ? "bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
                           : "bg-gray-100 text-gray-400 cursor-not-allowed"
