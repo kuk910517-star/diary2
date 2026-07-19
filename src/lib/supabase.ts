@@ -66,6 +66,26 @@ export function cleanSchedules(schedules: DaySchedule[]): DaySchedule[] {
 
   processed = processed.filter(s => s.date >= actualTodayStr);
 
+  // Filter out dates between 2026-07-25 and 2026-08-20 inclusive unless they contain customized lesson info
+  processed = processed.filter(s => {
+    if (s.date >= "2026-07-25" && s.date <= "2026-08-20") {
+      return s.lessons.some(l => l.subject || l.content);
+    }
+    return true;
+  });
+
+  // Ensure "2026-08-21" is always present if the current date is before it
+  if (!processed.some(s => s.date === "2026-08-21") && "2026-08-21" >= actualTodayStr) {
+    processed.push({
+      date: "2026-08-21",
+      lessons: DEFAULT_LESSONS.map((l, index) => ({
+        id: `2026-08-21-lesson-${index}-${Math.random().toString(36).substr(2, 4)}`,
+        subject: l.subject,
+        content: l.content,
+      }))
+    });
+  }
+
   const unique: Record<string, DaySchedule> = {};
   processed.forEach(s => {
     if (!unique[s.date]) {
@@ -84,7 +104,12 @@ export function cleanSchedules(schedules: DaySchedule[]): DaySchedule[] {
 
 export function getInitialMockSchedules(): DaySchedule[] {
   const todayStr = getActualTodayStr();
-  const weekdayDates = generateWeekdayDates(todayStr, "2026-07-31");
+  const weekdayDates = generateWeekdayDates(todayStr, "2026-07-24");
+  
+  if (!weekdayDates.includes("2026-08-21") && "2026-08-21" >= todayStr) {
+    weekdayDates.push("2026-08-21");
+  }
+
   return weekdayDates.map((dateStr) => ({
     date: dateStr,
     lessons: DEFAULT_LESSONS.map((l, index) => ({
@@ -1115,6 +1140,56 @@ export function saveCachedSetting(key: string, value: string) {
 
 export function isSupabaseInitialized() {
   return isInitialized;
+}
+
+export async function resetAllSemesterData(): Promise<boolean> {
+  const ownerId = getOwnerId();
+  if (!ownerId) return false;
+
+  try {
+    if (supabase) {
+      // Delete from timetable
+      const { error: tErr } = await supabase.from("timetable").delete().eq("owner_id", ownerId);
+      if (tErr) console.warn("Reset timetable error:", tErr);
+
+      // Delete from todos
+      const { error: dErr } = await supabase.from("todos").delete().eq("user_id", ownerId);
+      if (dErr) console.warn("Reset todos error:", dErr);
+
+      // Delete from attendance
+      const { error: aErr } = await supabase.from("attendance").delete().eq("owner_id", ownerId);
+      if (aErr) console.warn("Reset attendance error:", aErr);
+
+      // Delete from calendar_events
+      const { error: cErr } = await supabase.from("calendar_events").delete().eq("owner_id", ownerId);
+      if (cErr) console.warn("Reset calendar_events error:", cErr);
+    }
+
+    // Clear local backup
+    localStorage.removeItem(`attendance_local_backup_${ownerId}`);
+    localStorage.removeItem("teacher_notes_notice_html");
+
+    // Reset in-memory caches
+    timetablesCache = getInitialMockSchedules();
+    todosCache = [
+      { id: "todo-1", title: "출결 확인", isCompleted: false },
+      { id: "todo-2", title: "알림장 작성", isCompleted: false },
+      { id: "todo-3", title: "상담 기록", isCompleted: false },
+      { id: "todo-4", title: "가정통신문 확인", isCompleted: false },
+      { id: "todo-5", title: "생활기록부 작성", isCompleted: false },
+    ];
+    attendanceCache = [];
+    calendarEventsCache = {};
+    calendarCache = [];
+    noticesCache = "<div>1.&nbsp;내일 수학 준비물 지참</div><div>2.&nbsp;교실 사물함 정돈하기</div>";
+
+    // Trigger storage event so that all other views refresh
+    window.dispatchEvent(new Event("storage"));
+    return true;
+  } catch (err) {
+    console.error("Failed to reset all data:", err);
+    return false;
+  }
 }
 
 export function useSupabaseInitStatus() {

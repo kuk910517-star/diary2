@@ -115,6 +115,59 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
   const textareasRef = useRef<{ [key: string]: HTMLTextAreaElement | null }>({});
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [newDate, setNewDate] = useState("");
+  const [dateToDelete, setDateToDelete] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleAddDate = (dateStr: string) => {
+    if (!dateStr) return;
+    
+    if (schedules.some((s) => s.date === dateStr)) {
+      setErrorMessage("이미 시간표에 등록된 날짜입니다.");
+      setTimeout(() => setErrorMessage(null), 3000);
+      return;
+    }
+
+    const newDay: DaySchedule = {
+      date: dateStr,
+      lessons: [
+        { id: `${dateStr}-lesson-0-${Math.random().toString(36).substr(2, 4)}`, subject: "", content: "" },
+        { id: `${dateStr}-lesson-1-${Math.random().toString(36).substr(2, 4)}`, subject: "", content: "" },
+        { id: `${dateStr}-lesson-2-${Math.random().toString(36).substr(2, 4)}`, subject: "", content: "" },
+        { id: `${dateStr}-lesson-3-${Math.random().toString(36).substr(2, 4)}`, subject: "", content: "" },
+        { id: `${dateStr}-lesson-4-${Math.random().toString(36).substr(2, 4)}`, subject: "", content: "" },
+      ],
+    };
+
+    const updated = [...schedules, newDay].sort((a, b) => a.date.localeCompare(b.date));
+    handleSave(updated);
+    setNewDate("");
+    setErrorMessage(null);
+  };
+
+  const handleUpdateDate = (oldDate: string, newDateStr: string) => {
+    if (!newDateStr || oldDate === newDateStr) return;
+
+    if (schedules.some((s) => s.date === newDateStr)) {
+      setErrorMessage("이미 시간표에 등록된 날짜입니다.");
+      setTimeout(() => setErrorMessage(null), 3000);
+      return;
+    }
+
+    const updated = schedules.map((s) => {
+      if (s.date === oldDate) {
+        return {
+          ...s,
+          date: newDateStr,
+        };
+      }
+      return s;
+    }).sort((a, b) => a.date.localeCompare(b.date));
+
+    handleSave(updated);
+    setErrorMessage(null);
+  };
+
 
 
   // Load schedules on mount with real-time reactivity
@@ -469,7 +522,14 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
       </div>
 
       {/* Grid of Day Schedule Cards */}
-      <div className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-8">
+      <div className="max-w-[1400px] mx-auto p-6 lg:p-8 space-y-8 relative">
+        {/* Error message toast */}
+        {errorMessage && (
+          <div className="fixed top-20 right-6 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold px-4 py-2.5 rounded-xl shadow-md animate-fade-in z-50">
+            {errorMessage}
+          </div>
+        )}
+
         {schedules.map((day, dateIdx) => {
           const isTodayStr = formatDate(new Date()) === day.date;
 
@@ -481,14 +541,20 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
               }`}
             >
               {/* Card Header: Date */}
-              <div className="flex items-center justify-between pb-4 mb-5 border-b border-gray-100">
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-gray-100 flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl font-bold flex items-center gap-1.5 ${
-                    isTodayStr ? "bg-blue-100/75 text-[#2563EB]" : "bg-gray-50 text-gray-700"
-                  }`}>
-                    <Calendar className="w-4.5 h-4.5" />
-                    <span className="text-sm font-extrabold tracking-tight">
-                      {formatCardDate(day.date)} ({getDayKorean(day.date)})
+                  <div className={`p-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-colors ${
+                    isTodayStr ? "bg-blue-100/75 text-[#2563EB]" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                  }`} title="날짜를 클릭하여 변경할 수 있습니다">
+                    <Calendar className="w-4 h-4 shrink-0 text-gray-400" />
+                    <input
+                      type="date"
+                      value={day.date}
+                      onChange={(e) => handleUpdateDate(day.date, e.target.value)}
+                      className="bg-transparent border-none p-0 text-xs sm:text-sm font-extrabold focus:ring-0 focus:outline-hidden cursor-pointer w-28 text-center text-inherit"
+                    />
+                    <span className="text-xs font-semibold text-gray-400 pr-1 shrink-0">
+                      ({getDayKorean(day.date)})
                     </span>
                   </div>
                   {isTodayStr && (
@@ -497,9 +563,43 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-semibold text-gray-400">
-                  총 {day.lessons.length}개 교시 편성됨
-                </span>
+                
+                <div className="flex items-center gap-4">
+                  {dateToDelete === day.date ? (
+                    <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 px-2 py-1 rounded-xl animate-fade-in">
+                      <span className="text-[10px] font-extrabold text-rose-700">이 날짜를 삭제할까요?</span>
+                      <button
+                        onClick={() => {
+                          const updated = schedules.filter((s) => s.date !== day.date);
+                          handleSave(updated);
+                          setDateToDelete(null);
+                        }}
+                        className="px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-[10px] font-extrabold cursor-pointer transition-all"
+                      >
+                        예
+                      </button>
+                      <button
+                        onClick={() => setDateToDelete(null)}
+                        className="px-2 py-0.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-md text-[10px] font-extrabold cursor-pointer transition-all"
+                      >
+                        아니오
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDateToDelete(day.date)}
+                      className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-bold"
+                      title="이 날짜 시간표 삭제"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">날짜 삭제</span>
+                    </button>
+                  )}
+
+                  <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
+                    총 {day.lessons.length}개 교시 편성됨
+                  </span>
+                </div>
               </div>
 
               {/* Day Lessons Grid List */}
@@ -536,10 +636,10 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
                           {/* Subject Input Field */}
                           <div className="w-32">
                             <SubjectInput
-                              id={`sub-${day.date}-${lessonIdx}`}
-                              initialValue={lesson.subject}
-                              onSave={(val) => handleFieldChange(day.date, lesson.id, "subject", val)}
-                              onKeyDown={(e) => handleKeyDown(e, dateIdx, lessonIdx, "subject")}
+                               id={`sub-${day.date}-${lessonIdx}`}
+                               initialValue={lesson.subject}
+                               onSave={(val) => handleFieldChange(day.date, lesson.id, "subject", val)}
+                               onKeyDown={(e) => handleKeyDown(e, dateIdx, lessonIdx, "subject")}
                             />
                           </div>
                         </div>
@@ -572,14 +672,37 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
               </div>
 
               {/* Add lesson button at bottom of card */}
-              <div className="mt-4 flex justify-start">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => handleAddLesson(day.date)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563EB] bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50 px-4 py-2.5 rounded-xl transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563EB] bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50 px-4 py-2.5 rounded-xl transition-all cursor-pointer shrink-0"
                 >
                   <Plus className="w-4 h-4" />
                   교시 추가
                 </button>
+
+                {dateIdx === schedules.length - 1 && (
+                  <div className="flex items-center gap-2 border-l border-gray-100 pl-3">
+                    <input
+                      type="date"
+                      value={newDate}
+                      onChange={(e) => setNewDate(e.target.value)}
+                      className="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-800 focus:outline-hidden focus:border-[#2563EB] focus:ring-2 focus:ring-blue-100 transition-all cursor-pointer"
+                    />
+                    <button
+                      onClick={() => handleAddDate(newDate)}
+                      disabled={!newDate}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer select-none whitespace-nowrap ${
+                        newDate
+                          ? "bg-[#2563EB] text-white hover:bg-[#1d4ed8]"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      날짜 추가하기
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );
