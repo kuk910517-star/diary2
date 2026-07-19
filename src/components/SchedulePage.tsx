@@ -437,7 +437,8 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
   const formatCardDate = (dateStr: string) => {
     const parts = dateStr.split("-");
     if (parts.length === 3) {
-      return `${parts[0]}.${parts[1]}.${parts[2]}`;
+      const year = parts[0].slice(-2); // "26"
+      return `${year}.${parts[1]}.${parts[2]}`;
     }
     return dateStr;
   };
@@ -543,19 +544,22 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
               {/* Card Header: Date */}
               <div className="flex items-center justify-between pb-4 mb-5 border-b border-gray-100 flex-wrap gap-3">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                  <div className={`p-1.5 rounded-xl font-bold flex items-center gap-1 sm:gap-1.5 transition-colors ${
+                  <div className={`p-1.5 rounded-xl font-bold flex items-center gap-1 sm:gap-1.5 transition-colors relative overflow-hidden cursor-pointer ${
                     isTodayStr ? "bg-blue-100/75 text-[#2563EB]" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                   }`} title="날짜를 클릭하여 변경할 수 있습니다">
-                    <Calendar className="w-3.5 h-3.5 sm:w-4 h-4 shrink-0 text-gray-400" />
+                    <Calendar className="w-3.5 h-3.5 sm:w-4 h-4 shrink-0 text-gray-400 pointer-events-none" />
+                    <span className="text-xs sm:text-sm font-extrabold text-inherit pointer-events-none">
+                      {formatCardDate(day.date)}
+                    </span>
+                    <span className="text-[11px] sm:text-xs font-semibold text-gray-400 pr-1 shrink-0 pointer-events-none">
+                      ({getDayKorean(day.date)})
+                    </span>
                     <input
                       type="date"
                       value={day.date}
                       onChange={(e) => handleUpdateDate(day.date, e.target.value)}
-                      className="bg-transparent border-none p-0 text-xs sm:text-sm font-extrabold focus:ring-0 focus:outline-hidden cursor-pointer w-24 sm:w-28 text-center text-inherit min-h-[1.5rem]"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                     />
-                    <span className="text-[11px] sm:text-xs font-semibold text-gray-400 pr-1 shrink-0">
-                      ({getDayKorean(day.date)})
-                    </span>
                   </div>
                   {isTodayStr && (
                     <span className="text-[10px] sm:text-[11px] font-bold bg-[#2563EB] text-white px-2 py-0.5 rounded-full animate-pulse">
@@ -596,8 +600,8 @@ export default function SchedulePage({ onBack }: SchedulePageProps) {
                     </button>
                   )}
 
-                  <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
-                    총 {day.lessons.length}개 교시 편성됨
+                  <span className="text-xs font-extrabold text-gray-500 bg-gray-100/80 px-2.5 py-1 rounded-lg">
+                    {day.lessons.length}교시
                   </span>
                 </div>
               </div>
